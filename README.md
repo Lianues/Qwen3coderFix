@@ -1,15 +1,18 @@
-# OpenAI 响应格式转换代理
+# Qwen3 Coder API 格式修正代理 (OpenAI 兼容)
 
-本项目是一个轻量级的Python代理服务器，用于拦截发往OpenAI兼容API的请求，修改其响应格式后，再返回给客户端。
+本项目是一个轻量级的Python代理服务器，其核心目的是修正 **Qwen3 Coder** 模型API的非标准响应格式，使其完全兼容标准的OpenAI API格式。
 
-## 功能
+许多客户端工具是为标准OpenAI API设计的，无法直接处理Qwen3 Coder API将内容输出在 `reasoning_content` 字段中的情况。本代理通过拦截并修改响应，解决了这个问题。
+
+## 核心修正逻辑
 
 - **监听本地端口**：在 `http://127.0.0.1:5106` 上启动一个HTTP服务器。
 - **转发API请求**：
-  - 将 `/v1/chat/completions` (POST) 请求转发到 `https://api.gmi-serving.com/v1/chat/completions`。
-  - 将 `/v1/models` (GET) 请求转发到 `https://api.gmi-serving.com/v1/models`。
-- **修改响应体**：对于 `/v1/chat/completions` 的响应，脚本会将 `choices[0].delta.reasoning_content` 或 `choices[0].message.reasoning_content` 的值移动到 `content` 字段，并将 `reasoning_content` 字段设置为 `null`。
-- **支持流式与非流式**：能够正确处理并修改这两种响应模式。
+  - 将 `/v1/chat/completions` (POST) 请求转发到上游的Qwen3 Coder API服务 (`https://api.gmi-serving.com/v1/chat/completions`)。
+  - 将 `/v1/models` (GET) 请求也进行转发。
+- **修正响应格式**：对于 `/v1/chat/completions` 的响应（包括流式和非流式），本代理会：
+  1.  将 `reasoning_content` 字段中的内容**移动**到标准的 `content` 字段。
+  2.  将 `reasoning_content` 字段的值设置为 `null`。
 - **生产级服务**：使用 `waitress` 作为WSGI服务器，稳定可靠。
 
 ## 安装
@@ -39,4 +42,4 @@
 
     **注意**：请确保使用 `http://` 而不是 `https://`。
 
-3.  现在，你的客户端就可以像直接请求OpenAI API一样，向本地代理发送请求了。代理服务器会自动完成转发、修改和返回响应的全过程。
+3.  现在，你的客户端就可以无缝地与Qwen3 Coder API进行交互，如同它是一个标准的OpenAI服务。代理服务器会自动完成所有的格式修正工作。
